@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "kani-ext-YOURNAMEHERE"
+version = "0.0.1"  # Update with your own version number
+authors = [
+    { name = "YOUR NAME HERE", email = "YOUR EMAIL HERE" },
+]
+description = "YOUR DESCRIPTION HERE"
+readme = "README.md"
+#license = { file = "LICENSE" }  # Uncomment me after adding a license
+requires-python = ">=3.10"
+classifiers = [
+    # Your classifiers here: https://pypi.org/classifiers/
+]
+dependencies = [
+    "kani<2.0.0",
+    # Your dependencies here
+]
+
+# Uncomment if you want to link to some URLs from the PyPI page
+#[project.urls]
+#"Homepage" = "https://github.com/..."
+#"Bug Tracker" = "https://github.com/.../issues"
+
+# This tells the build system that the kani directory contains a namespace package
+# Don't touch it unless you know what you're doing!
+[tool.hatch.build.targets.wheel]
+packages = ["kani"]
