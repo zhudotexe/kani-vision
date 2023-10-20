@@ -5,7 +5,6 @@ kani[openai]<2.0.0
 
 # llava
 kani[huggingface,llama]<2.0.0
-llava @ git+https://github.com/haotian-liu/LLaVA.git@v1.1.1
 
 # dev
 black

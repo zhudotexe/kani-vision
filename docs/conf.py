@@ -42,7 +42,7 @@ maximum_signature_line_length = 120
 html_theme = "furo"
 html_static_path = ["_static"]
 html_extra_path = ["_extra"]
-html_logo = "_static/kani-logo@512.png"
+html_logo = "_static/kani-vision-logo.png"
 html_favicon = "_extra/favicon.ico"
 html_baseurl = "https://kani-vision.readthedocs.io/en/latest/"
 

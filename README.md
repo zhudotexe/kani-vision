@@ -1,58 +1,38 @@
-# kani Extension Template
+<p align="center">
+  <img width="256" height="256" alt="kani" src="docs/_static/kani-vision-logo.png">
+</p>
 
-This repository contains a template for building kani extensions that use the `kani.ext.*` namespace.
+<p align="center">
+  <a href="https://github.com/zhudotexe/kani-vision/actions/workflows/pytest.yml">
+    <img alt="Test Package" src="https://github.com/zhudotexe/kani-vision/actions/workflows/pytest.yml/badge.svg">
+  </a>
+  <a href="https://kani-vision.readthedocs.io/en/latest/?badge=latest">
+    <img alt="Documentation Status" src="https://readthedocs.org/projects/kani-vision/badge/?version=latest">
+  </a>
+  <a href="https://pypi.org/project/kani-vision/">
+    <img alt="PyPI" src="https://img.shields.io/pypi/v/kani-vision">
+  </a>
+  <a href="https://discord.gg/eTepTNDxYT">
+    <img alt="Discord" src="https://img.shields.io/discord/1150902904773935214?color=5865F2&label=discord&logo=discord&logoColor=white">
+  </a>
+</p>
 
-See https://packaging.python.org/en/latest/tutorials/packaging-projects/ for more information.
+# kani-vision
 
-## Getting Started
+## Installation
 
-### Create Repo From Template
+OpenAI:
 
-The first step is to create your own repo using this repo as a template!
+```shell
+$ pip install "kani-vision[openai]"
+```
 
-Follow the instructions
-at https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template
-in order to create your repo. We recommend naming your extension repo like `kani-ext-myextension`, but you are free to
-choose whatever name you like.
+LLaVA:
 
-### Choose License
+Note: to install dependencies for LLaVA, you will have to run the following commands as the LLaVA package installs
+some outdated incompatible dependencies by default:
 
-An important next step is to choose your code's license. kani is licensed under the MIT license, which allows extension
-developers to license their own code with a license of their own choice.
-
-We (the kani developers) recommend making your extension available under the MIT license as well. You are, however, free
-to choose your own license: https://choosealicense.com/
-
-Once you've chosen a license, add it to your repository in a file named `LICENSE`.
-
-### Update Names
-
-Now that you've created your repo, the next step is to change the template names to your own package's names. The files
-you'll need to change are:
-
-- `pyproject.toml`: Set your package name and metadata
-- `kani/ext/my_extension`: Rename the `my_extension` directory to your own name
-- `.github/workflows/pythonpublish.yml` (optional): Set the environment variable to the right PyPI URL
-
-Finally, you can delete the contents of this README and replace them with your own! Write your code in the `kani/ext/*`
-package you renamed.
-
-## Publishing to PyPI
-
-To publish your package to PyPI, this repo comes with a GitHub Action that will automatically build and upload new
-releases. Alternatively, you can build and publish the package manually.
-
-### GitHub Action
-
-To use the GitHub Action, you must configure it as a publisher for your project on
-PyPI: https://pypi.org/manage/account/publishing/
-
-The workflow is configured with the following settings:
-
-- workflow name: `pythonpublish.yml`
-- environment name: `pypi`
-
-Once you've configured this, each release you publish on GitHub will automatically be built and uploaded to PyPI.
-You can also manually trigger the workflow.
-
-Make sure to update the version number in `pyproject.toml` before releasing a new version!
+```shell
+$ pip install "kani-vision[llava]"
+$ pip install --no-deps "llava @ git+https://github.com/haotian-liu/LLaVA.git@v1.1.1"
+```
