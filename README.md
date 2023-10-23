@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="256" height="256" alt="kani" src="docs/_static/kani-vision-logo.png">
+  <img width="256" height="256" alt="kani" src="https://kani-vision.readthedocs.io/en/latest/_static/kani-vision-logo.png">
 </p>
 
 <p align="center">
@@ -21,18 +21,28 @@
 
 ## Installation
 
-OpenAI:
+To install kani-vision, you must have at least Python 3.10. kani-vision uses extras to provide support for specific
+models - see below for model-specific instructions and other extras.
+
+You can combine multiple extras into a single command, like `pip install "kani-vision[openai,ascii]"`.
+
+### OpenAI (GPT-4V)
 
 ```shell
 $ pip install "kani-vision[openai]"
 ```
 
-LLaVA:
+### LLaVA v1.5
 
-Note: to install dependencies for LLaVA, you will have to run the following commands as the LLaVA package installs
+Note: to install dependencies for LLaVA, you will have to run the following two commands as the LLaVA package installs
 some outdated incompatible dependencies by default:
 
 ```shell
 $ pip install "kani-vision[llava]"
 $ pip install --no-deps "llava @ git+https://github.com/haotian-liu/LLaVA.git@v1.1.1"
 ```
+
+### Other Extras
+
+- `pip install "kani-vision[ascii]"`: When using `chat_in_terminal_vision()`, this will display any images you provide
+  to the model as ASCII art in your terminal :).
