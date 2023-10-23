@@ -4,6 +4,7 @@ import pathlib
 from io import BytesIO
 
 from PIL import Image
+from pydantic import SkipValidation
 
 from kani import MessagePart
 from kani.utils.typing import PathLike
@@ -22,14 +23,14 @@ class ImagePart(MessagePart, abc.ABC):
         return BytesImagePart(data=data)
 
     @staticmethod
-    def from_image(image: Image):
-        """Create an image part from an existing :class:`PIL.Image`."""
-        return PillowImagePart(image=image)
+    def from_image(image: Image.Image):
+        """Create an image part from an existing :class:`PIL.Image.Image`."""
+        return PillowImagePart(pil_image=image)
 
     # props
     @property
-    def image(self) -> Image:
-        """Get a :class:`PIL.Image` representing the image."""
+    def image(self) -> Image.Image:
+        """Get a :class:`PIL.Image.Image` representing the image."""
         raise NotImplementedError
 
     @property
@@ -73,9 +74,9 @@ class BytesImagePart(ImagePart):
         return self.bytes
 
 
-class PillowImagePart(ImagePart):
-    image: Image
+class PillowImagePart(ImagePart, arbitrary_types_allowed=True):
+    pil_image: SkipValidation[Image.Image]
 
     @property
     def image(self):
-        return self.image
+        return self.pil_image
