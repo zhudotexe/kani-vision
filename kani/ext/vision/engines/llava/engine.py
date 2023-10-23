@@ -1,9 +1,6 @@
-from llava.mm_utils import process_images, tokenizer_image_token
-
-from kani import AIFunction, ChatMessage, ChatRole
-from kani.engines import llama2_prompt
+from kani import AIFunction, ChatMessage
 from kani.engines.base import Completion
-from kani.engines.huggingface import HuggingEngine
+from kani.engines.huggingface.vicuna import VicunaEngine
 from kani.exceptions import MissingModelDependencies
 from ...parts import ImagePart
 
@@ -17,6 +14,7 @@ try:
         DEFAULT_IMAGE_TOKEN,
         IMAGE_TOKEN_INDEX,
     )
+    from llava.mm_utils import process_images, tokenizer_image_token
     from torch import tensor
 except ImportError:
     raise MissingModelDependencies(
@@ -26,8 +24,11 @@ except ImportError:
     ) from None
 
 
-class LlavaEngine(HuggingEngine):
+class LlavaEngine(VicunaEngine):
     """Implementation of LLaVA v1.5 using Hugging Face transformers.
+
+    LLaVA v1.5 is a vision-language model based on the Vicuna v1.5 language model (see
+    :class:`kani.engines.huggingface.vicuna.VicunaEngine`).
 
     You may also use the 13b or other LLaVA models that use the LLaVA prompt and image encoding by passing the
     HuggingFace model ID to the initializer.
@@ -51,13 +52,10 @@ class LlavaEngine(HuggingEngine):
         msg = await ai.chat_round_str(["Please describe this image:", ImagePart.from_path("path/to/image.png")])
     """
 
-    token_reserve = 7
-
     def __init__(
         self,
         model_id: str = "liuhaotian/llava-v1.5-7b",
         *args,
-        tokenizer_kwargs: dict = None,
         model_load_kwargs: dict = None,
         **kwargs,
     ):
@@ -69,20 +67,12 @@ class LlavaEngine(HuggingEngine):
         :param model_load_kwargs: Additional arguments to pass to ``AutoModelForCausalLM.from_pretrained()``.
         :param hyperparams: Additional arguments to supply the model during generation.
         """
-        kwargs.setdefault("max_context_size", 2048)
         # model kwargs
         if model_load_kwargs is None:
             model_load_kwargs = {}
         model_load_kwargs.setdefault("torch_dtype", torch.float16)
-        model_load_kwargs.setdefault("low_cpu_mem_usage", True)
         model_load_kwargs.setdefault("device_map", "auto")
-        # tokenizer kwargs
-        if tokenizer_kwargs is None:
-            tokenizer_kwargs = {}
-        tokenizer_kwargs.setdefault("use_fast", False)
-        super().__init__(
-            model_id, *args, tokenizer_kwargs=tokenizer_kwargs, model_load_kwargs=model_load_kwargs, **kwargs
-        )
+        super().__init__(model_id, *args, model_load_kwargs=model_load_kwargs, **kwargs)
 
         # initialization for base LLaVA from https://github.com/haotian-liu/LLaVA/blob/main/llava/model/builder.py#L128
         # note: these lines (until resize_token_embeddings) are only really used in MPT, but are here for fidelity
@@ -103,7 +93,7 @@ class LlavaEngine(HuggingEngine):
         if hasattr(self.model.config, "max_sequence_length"):
             self.max_context_size = self.model.config.max_sequence_length
         else:
-            self.max_context_size = 2048
+            self.max_context_size = kwargs["max_context_size"]
 
     # much of the implementation adapted from
     # https://github.com/haotian-liu/LLaVA/blob/main/llava/serve/cli.py#L56
@@ -111,26 +101,9 @@ class LlavaEngine(HuggingEngine):
 
     def build_prompt(self, messages: list[ChatMessage], functions: list[AIFunction] | None = None) -> torch.Tensor:
         # first, build up the string in the format llava expects (vicuna-style)
-        prompt_lines = []
-        for message in messages:
-            if message.role == ChatRole.USER:
-                prompt_lines.append(f"USER: {message.text}")
-            elif message.role == ChatRole.ASSISTANT:
-                prompt_lines.append(f"ASSISTANT: {message.text}</s>")
-            else:
-                prompt_lines.append(f"{message.text}\n")
-        prompt = "\n".join(prompt_lines)
-        text = f"{prompt}\nASSISTANT:"
-
-        # TODO: LLaMA v2
-        # text = ""
-        # for content, bos, eos in llama2_prompt.build_str(messages):
-        #     if bos:
-        #         text += "<s>"
-        #     text += content
-        #     if eos:
-        #         text += "</s>"
-        # text = text.removeprefix("<s>")
+        # note: by now, we have replaced all the images in the messages with the <image> token, and we'll
+        # want to just build the single str
+        text = super().build_prompt(messages, functions)
 
         # then pass it along, ala
         # https://github.com/haotian-liu/LLaVA/blob/main/llava/serve/cli.py#L87
@@ -172,20 +145,9 @@ class LlavaEngine(HuggingEngine):
         # and call the prediction logic
         return await super().predict(translated_messages, functions, images=image_tensor, **hyperparams)
 
-    def vicuna_message_len(self, message: ChatMessage) -> int:
-        # remove 1 for the <s> token at the start
-        if message.role == ChatRole.USER:
-            # USER: {}\n -> 5
-            return self.tokenizer(message.text, return_length=True).length + 4
-        elif message.role == ChatRole.ASSISTANT:
-            # ASSISTANT: {}</s>\n -> 8
-            return self.tokenizer(message.text, return_length=True).length + 7
-        # {}\n\n -> 2
-        return self.tokenizer(message.text, return_length=True).length + 1
-
     def message_len(self, message: ChatMessage) -> int:
         if isinstance(message.content, str):
-            return self.vicuna_message_len(message)
+            return super().message_len(message)
         # count the image parts
         image_parts = 0
         translated_parts = message.parts.copy()
@@ -196,6 +158,6 @@ class LlavaEngine(HuggingEngine):
         # if we have any, tokenize the translated message with <image> tokens
         if image_parts:
             image_tokens = self.model.get_vision_tower().num_patches * image_parts
-            return self.vicuna_message_len(message.copy_with(parts=translated_parts)) + image_tokens
+            return super().message_len(message.copy_with(parts=translated_parts)) + image_tokens
         # otherwise return normally
-        return self.vicuna_message_len(message)
+        return super().message_len(message)
