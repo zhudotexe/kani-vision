@@ -8,4 +8,5 @@ kani-vision
     :maxdepth: 2
     :caption: Docs
 
+    api_reference
     genindex

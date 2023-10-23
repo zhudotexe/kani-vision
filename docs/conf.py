@@ -3,7 +3,6 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import sys
-import urllib.parse
 
 # ensure kani is available in path
 sys.path.append("..")
@@ -55,10 +54,15 @@ nitpick_ignore_regex = [
 # sphinx.ext.autodoc
 autoclass_content = "both"
 autodoc_member_order = "bysource"
+autodoc_default_options = {
+    "exclude-members": "model_config, model_fields",
+}
 
 # sphinx.ext.intersphinx
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
+    "kani": ("https://kani.readthedocs.io/en/latest", None),
+    "Pillow": ("https://pillow.readthedocs.io/en/latest", None),
 }
 
 # sphinxext.opengraph

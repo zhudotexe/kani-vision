@@ -11,6 +11,12 @@ from kani.utils.typing import PathLike
 
 
 class ImagePart(MessagePart, abc.ABC):
+    """Base class for all image message parts.
+
+    Generally, you shouldn't construct this directly - instead, use one of the classmethods to initialize the image from
+    a file path, binary, or Pillow image.
+    """
+
     # constructors
     @staticmethod
     def from_path(fp: PathLike):
@@ -50,6 +56,11 @@ class ImagePart(MessagePart, abc.ABC):
 
 
 class FileImagePart(ImagePart):
+    """An image whose data lives at the given file path.
+
+    Use :meth:`.ImagePart.from_path` to construct.
+    """
+
     path: pathlib.Path
 
     @property
@@ -63,6 +74,11 @@ class FileImagePart(ImagePart):
 
 
 class BytesImagePart(ImagePart):
+    """An image whose data lives in memory.
+
+    Use :meth:`.ImagePart.from_bytes` to construct.
+    """
+
     data: bytes
 
     @property
@@ -75,6 +91,11 @@ class BytesImagePart(ImagePart):
 
 
 class PillowImagePart(ImagePart, arbitrary_types_allowed=True):
+    """An image represented by a Pillow Image.
+
+    Use :meth:`.ImagePart.from_image` to construct.
+    """
+
     pil_image: SkipValidation[Image.Image]
 
     @property
