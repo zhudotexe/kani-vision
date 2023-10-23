@@ -1,6 +1,6 @@
 from llava.mm_utils import process_images, tokenizer_image_token
 
-from kani import AIFunction, ChatMessage
+from kani import AIFunction, ChatMessage, ChatRole
 from kani.engines import llama2_prompt
 from kani.engines.base import Completion
 from kani.engines.huggingface import HuggingEngine
@@ -51,7 +51,16 @@ class LlavaEngine(HuggingEngine):
         msg = await ai.chat_round_str(["Please describe this image:", ImagePart.from_path("path/to/image.png")])
     """
 
-    def __init__(self, model_id: str = "liuhaotian/llava-v1.5-7b", *args, **kwargs):
+    token_reserve = 7
+
+    def __init__(
+        self,
+        model_id: str = "liuhaotian/llava-v1.5-7b",
+        *args,
+        tokenizer_kwargs: dict = None,
+        model_load_kwargs: dict = None,
+        **kwargs,
+    ):
         """
         :param model_id: The ID of the model to load from HuggingFace.
         :param max_context_size: The context size of the model.
@@ -61,7 +70,19 @@ class LlavaEngine(HuggingEngine):
         :param hyperparams: Additional arguments to supply the model during generation.
         """
         kwargs.setdefault("max_context_size", 2048)
-        super().__init__(model_id, *args, **kwargs)
+        # model kwargs
+        if model_load_kwargs is None:
+            model_load_kwargs = {}
+        model_load_kwargs.setdefault("torch_dtype", torch.float16)
+        model_load_kwargs.setdefault("low_cpu_mem_usage", True)
+        model_load_kwargs.setdefault("device_map", "auto")
+        # tokenizer kwargs
+        if tokenizer_kwargs is None:
+            tokenizer_kwargs = {}
+        tokenizer_kwargs.setdefault("use_fast", False)
+        super().__init__(
+            model_id, *args, tokenizer_kwargs=tokenizer_kwargs, model_load_kwargs=model_load_kwargs, **kwargs
+        )
 
         # initialization for base LLaVA from https://github.com/haotian-liu/LLaVA/blob/main/llava/model/builder.py#L128
         # note: these lines (until resize_token_embeddings) are only really used in MPT, but are here for fidelity
@@ -89,15 +110,27 @@ class LlavaEngine(HuggingEngine):
     # https://github.com/haotian-liu/LLaVA/blob/main/llava/serve/model_worker.py#L136
 
     def build_prompt(self, messages: list[ChatMessage], functions: list[AIFunction] | None = None) -> torch.Tensor:
-        # first, build up the string in the format llava expects
-        text = ""
-        for content, bos, eos in llama2_prompt.build_str(messages):
-            if bos:
-                text += "<s>"
-            text += content
-            if eos:
-                text += "</s>"
-        text = text.removeprefix("<s>")
+        # first, build up the string in the format llava expects (vicuna-style)
+        prompt_lines = []
+        for message in messages:
+            if message.role == ChatRole.USER:
+                prompt_lines.append(f"USER: {message.text}")
+            elif message.role == ChatRole.ASSISTANT:
+                prompt_lines.append(f"ASSISTANT: {message.text}</s>")
+            else:
+                prompt_lines.append(f"{message.text}\n")
+        prompt = "\n".join(prompt_lines)
+        text = f"{prompt}\nASSISTANT:"
+
+        # TODO: LLaMA v2
+        # text = ""
+        # for content, bos, eos in llama2_prompt.build_str(messages):
+        #     if bos:
+        #         text += "<s>"
+        #     text += content
+        #     if eos:
+        #         text += "</s>"
+        # text = text.removeprefix("<s>")
 
         # then pass it along, ala
         # https://github.com/haotian-liu/LLaVA/blob/main/llava/serve/cli.py#L87
@@ -130,7 +163,7 @@ class LlavaEngine(HuggingEngine):
                 translated_messages[idx] = message.copy_with(parts=translated_parts)
 
         # turn all the image parts into a tensor
-        image_tensor = process_images([images], self.image_processor, self.model.config)
+        image_tensor = process_images(images, self.image_processor, self.model.config)
         if type(image_tensor) is list:
             image_tensor = [image.to(self.device, dtype=torch.float16) for image in image_tensor]
         else:
@@ -139,9 +172,20 @@ class LlavaEngine(HuggingEngine):
         # and call the prediction logic
         return await super().predict(translated_messages, functions, images=image_tensor, **hyperparams)
 
+    def vicuna_message_len(self, message: ChatMessage) -> int:
+        # remove 1 for the <s> token at the start
+        if message.role == ChatRole.USER:
+            # USER: {}\n -> 5
+            return self.tokenizer(message.text, return_length=True).length + 4
+        elif message.role == ChatRole.ASSISTANT:
+            # ASSISTANT: {}</s>\n -> 8
+            return self.tokenizer(message.text, return_length=True).length + 7
+        # {}\n\n -> 2
+        return self.tokenizer(message.text, return_length=True).length + 1
+
     def message_len(self, message: ChatMessage) -> int:
         if isinstance(message.content, str):
-            return super().message_len(message)
+            return self.vicuna_message_len(message)
         # count the image parts
         image_parts = 0
         translated_parts = message.parts.copy()
@@ -152,6 +196,6 @@ class LlavaEngine(HuggingEngine):
         # if we have any, tokenize the translated message with <image> tokens
         if image_parts:
             image_tokens = self.model.get_vision_tower().num_patches * image_parts
-            return super().message_len(message.copy_with(parts=translated_parts)) + image_tokens
+            return self.vicuna_message_len(message.copy_with(parts=translated_parts)) + image_tokens
         # otherwise return normally
-        return super().message_len(message)
+        return self.vicuna_message_len(message)

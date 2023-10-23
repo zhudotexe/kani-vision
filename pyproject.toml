@@ -33,6 +33,7 @@ openai = [
 
 llava = [
     "kani[huggingface,llama]<2.0.0",
+    "accelerate~=0.23.0",
     "einops~=0.7.0",
     "protobuf~=4.24.4",
 ]
