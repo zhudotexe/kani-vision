@@ -92,8 +92,6 @@ class LlavaEngine(VicunaEngine):
 
         if hasattr(self.model.config, "max_sequence_length"):
             self.max_context_size = self.model.config.max_sequence_length
-        else:
-            self.max_context_size = kwargs["max_context_size"]
 
     # much of the implementation adapted from
     # https://github.com/haotian-liu/LLaVA/blob/main/llava/serve/cli.py#L56
