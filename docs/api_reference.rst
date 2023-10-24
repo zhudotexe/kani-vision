@@ -21,6 +21,9 @@ The following classes are the types constructed by the ImagePart methods.
 
 Engines
 -------
+.. autoclass:: kani.ext.vision.engines.openai.OpenAIVisionEngine
+    :members:
+    :show-inheritance:
 
 .. autoclass:: kani.ext.vision.engines.llava.LlavaEngine
     :members:

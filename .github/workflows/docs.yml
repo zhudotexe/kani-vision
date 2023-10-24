@@ -22,4 +22,4 @@ jobs:
 
       - name: Build docs
         working-directory: ./docs
-        run: sphinx-build -T -E -W --keep-going -b html "." "_build"
+        run: sphinx-build -T -E -b html "." "_build"

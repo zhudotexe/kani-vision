@@ -59,7 +59,7 @@ def print_parts_ascii(parts: list[MessagePartType]):
             print()
             cols, _ = shutil.get_terminal_size()
             art = ascii_magic.from_pillow_image(part.image)
-            art.to_terminal(columns=cols)
+            art.to_terminal(columns=cols // 3 * 2)
         else:
             print(part, end="")
     # and flush
