@@ -87,7 +87,7 @@ class BytesImagePart(ImagePart):
 
     @property
     def bytes(self):
-        return self.bytes
+        return self.data
 
 
 class PillowImagePart(ImagePart, arbitrary_types_allowed=True):
