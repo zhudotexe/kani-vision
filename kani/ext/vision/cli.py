@@ -6,7 +6,10 @@ import pathlib
 import re
 import shutil
 import sys
+import tempfile
 import warnings
+
+import aiohttp
 
 from kani import Kani
 from kani.models import MessagePartType
@@ -16,24 +19,41 @@ from .parts import ImagePart
 _has_ascii = importlib.util.find_spec("ascii_magic") is not None
 _is_notebook = "ipykernel" in sys.modules
 
+# it's time to get s p i c y
+# please don't do this in prod, this is just for a dev helper
+# @formatter:off
+# https://gist.github.com/gruber/8891611
+WEB_REGEX = r"""(?i)\b((?:https?:(?:/{1,3}|[a-z0-9%])|[a-z0-9.\-]+[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)/)(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’])|(?:(?<!@)[a-z0-9]+(?:[.\-][a-z0-9]+)*[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)\b/?(?!@)))"""  # noqa: E501
+BANG_IMAGE_RE = re.compile(rf"!(?P<path>/?(\S+?/)*([^/\s]+\.[^/\s]+))|(?P<path_quot>\"/?(.+?/)*([^/]+\.[^/\s]+)\")|(?P<url>{WEB_REGEX})")  # noqa: E501
+# @formatter:on
+
 
 # ==== parsing helpers ====
-def parts_from_cli_query(query: str) -> list[MessagePartType]:
+async def parts_from_cli_query(query: str) -> list[MessagePartType]:
     """Parse a string with paths to images prepended by ``!`` into the right messageparts."""
     query_parts = []
     last_idx = 0
-    for image_match in re.finditer(
-        r"!(?P<path>/?(\S+?/)*([^/\s]+\.[^/\s]+))|(?P<path_quot>\"/?(.+?/)*([^/]+\.[^/\s]+)\")", query
-    ):
+    for image_match in BANG_IMAGE_RE.finditer(query):
         # push everything between the end of the last path and the start of this one to the parts
         query_parts.append(query[last_idx : image_match.start()])
         last_idx = image_match.end()
 
-        # ensure the path is valid
-        if path := image_match["path"]:
-            fp = pathlib.Path(path)
+        # if a path:
+        if not image_match["url"]:
+            # ensure the path is valid
+            if path := image_match["path"]:
+                fp = pathlib.Path(path)
+            else:
+                fp = pathlib.Path(image_match["path_quot"].strip('"'))
+        # if a url:
         else:
-            fp = pathlib.Path(image_match["path_quot"].strip('"'))
+            # download the image to a named temp file and return that path
+            async with aiohttp.ClientSession() as session:
+                async with session.get(image_match["url"]) as resp:
+                    with tempfile.NamedTemporaryFile(delete=False) as f:
+                        async for chunk in resp.content.iter_chunked(4096):
+                            f.write(chunk)
+                        fp = f.name
 
         # if not, push the string to parts
         if not (fp.exists() and fp.is_file()):
@@ -95,7 +115,7 @@ async def chat_in_terminal_vision_async(kani: Kani, rounds: int = 0, stopword: s
                 break
 
             # find !path/to/file.png parts and replace them with FileImageParts
-            query_parts = parts_from_cli_query(query)
+            query_parts = await parts_from_cli_query(query)
 
             # then print it out with whatever image backend a user has installed
             has_image = any(isinstance(p, ImagePart) for p in query_parts)
@@ -118,15 +138,13 @@ async def chat_in_terminal_vision_async(kani: Kani, rounds: int = 0, stopword: s
 def chat_in_terminal_vision(kani: Kani, rounds: int = 0, stopword: str = None):
     """Chat with a vision-enabled kani right in your terminal.
 
-    To provide an image to the vision kani, prepend its filepath with a ``!`` (e.g. "Describe this image: !image.png").
-    Use quotes (e.g. ``!"path/to/my image.png"``) for paths with spaces in their names.
+    To provide an image to the vision kani, prepend a filepath or URL with a ``!``
+    (e.g. "Describe this image: !image.png"). Use quotes (e.g. ``!"path/to/my image.png"``) for paths with spaces in
+    their names.
 
     Useful for playing with kani, quick prompt engineering, or demoing the library.
 
     If the environment variable ``KANI_DEBUG`` is set, debug logging will be enabled.
-
-    If run in a Jupyter notebook or Google Colab, this function will use widgets to accept file uploads and display
-    images.
 
     .. warning::
 
