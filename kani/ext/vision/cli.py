@@ -98,8 +98,7 @@ async def chat_in_terminal_vision_async(kani: Kani, rounds: int = 0, stopword: s
                 from IPython.display import Image, display
                 from ipywidgets import widgets
 
-                if uploader is None:
-                    uploader = widgets.FileUpload(accept="image/*", multiple=True, description="Upload images")
+                uploader = widgets.FileUpload(accept="image/*", multiple=True, description="Upload images")
                 display(uploader)
 
             # get user input
@@ -114,7 +113,7 @@ async def chat_in_terminal_vision_async(kani: Kani, rounds: int = 0, stopword: s
             if uploader is not None:
                 for uploaded_file in uploader.value:
                     query_parts.append(ImagePart.from_bytes(uploaded_file.content.tobytes()))
-                uploader.value = ()
+                uploader.close()
 
             # then print it out with whatever image backend a user has installed
             has_image = any(isinstance(p, ImagePart) for p in query_parts)
