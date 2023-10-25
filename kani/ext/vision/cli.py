@@ -109,8 +109,14 @@ async def chat_in_terminal_vision_async(kani: Kani, rounds: int = 0, stopword: s
 
             # if we had files from the widget, append them to the parts too
             if uploader is not None:
-                for uploaded_file in uploader.value:
-                    query_parts.append(ImagePart.from_bytes(uploaded_file.content.tobytes()))
+                if isinstance(uploader.value, dict):
+                    # ipywidgets <8
+                    for name, uploaded_file in uploader.value.items():
+                        query_parts.append(ImagePart.from_bytes(uploaded_file["content"]))
+                else:
+                    # ipywidgets >=8
+                    for uploaded_file in uploader.value:
+                        query_parts.append(ImagePart.from_bytes(uploaded_file.content.tobytes()))
                 uploader.close()
 
             # then print it out with whatever image backend a user has installed
