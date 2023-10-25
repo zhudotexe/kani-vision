@@ -12,6 +12,9 @@
   <a href="https://pypi.org/project/kani-vision/">
     <img alt="PyPI" src="https://img.shields.io/pypi/v/kani-vision">
   </a>
+  <a href="https://colab.research.google.com/github/zhudotexe/kani-vision/blob/main/examples/colab_quickstart.ipynb">
+    <img alt="Quickstart in Colab" src="https://colab.research.google.com/assets/colab-badge.svg">
+  </a>
   <a href="https://discord.gg/eTepTNDxYT">
     <img alt="Discord" src="https://img.shields.io/discord/1150902904773935214?color=5865F2&label=discord&logo=discord&logoColor=white">
   </a>

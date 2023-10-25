@@ -2,6 +2,7 @@
 To determine how many tokens a given image will use when passed to GPT-4V, let's do a naive binary search for the
 resolutions of an image which change the number of tokens in the prompt.
 """
+
 import asyncio
 import os
 import sys
