@@ -89,16 +89,6 @@ async def chat_in_terminal_vision_async(kani: Kani, rounds: int = 0, stopword: s
         round_num = 0
         while round_num < rounds or not rounds:
             round_num += 1
-
-            # if we're in a notebook, enable a widget to upload files
-            uploader = None
-            if _is_notebook:
-                from IPython.display import Image, display
-                from ipywidgets import widgets
-
-                uploader = widgets.FileUpload(accept="image/*", multiple=True, description="Upload images")
-                display(uploader)
-
             # get user input
             query = input("USER: ").strip()
             if stopword and query == stopword:
@@ -106,18 +96,6 @@ async def chat_in_terminal_vision_async(kani: Kani, rounds: int = 0, stopword: s
 
             # find !path/to/file.png parts and replace them with FileImageParts
             query_parts = parts_from_cli_query(query)
-
-            # if we had files from the widget, append them to the parts too
-            if uploader is not None:
-                if isinstance(uploader.value, dict):
-                    # ipywidgets <8
-                    for name, uploaded_file in uploader.value.items():
-                        query_parts.append(ImagePart.from_bytes(uploaded_file["content"]))
-                else:
-                    # ipywidgets >=8
-                    for uploaded_file in uploader.value:
-                        query_parts.append(ImagePart.from_bytes(uploaded_file.content.tobytes()))
-                uploader.close()
 
             # then print it out with whatever image backend a user has installed
             has_image = any(isinstance(p, ImagePart) for p in query_parts)
