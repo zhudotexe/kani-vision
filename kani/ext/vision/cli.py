@@ -1,9 +1,11 @@
 import asyncio
+import importlib.util
 import logging
 import os
 import pathlib
 import re
 import shutil
+import sys
 import warnings
 
 from kani import Kani
@@ -11,14 +13,11 @@ from kani.models import MessagePartType
 from kani.utils.message_formatters import assistant_message_contents_thinking
 from .parts import ImagePart
 
-try:
-    import ascii_magic
-
-    _has_ascii = True
-except ImportError:
-    _has_ascii = False
+_has_ascii = importlib.util.find_spec("ascii_magic") is not None
+_is_notebook = "ipykernel" in sys.modules
 
 
+# ==== parsing helpers ====
 def parts_from_cli_query(query: str) -> list[MessagePartType]:
     """Parse a string with paths to images prepended by ``!`` into the right messageparts."""
     query_parts = []
@@ -49,7 +48,21 @@ def parts_from_cli_query(query: str) -> list[MessagePartType]:
     return query_parts
 
 
+# ==== image display helpers ====
+def display_images_ipython(parts: list[MessagePartType]):
+    from IPython.display import Image, display
+
+    # show each ImagePart in an IPython display
+    images = []
+    for part in parts:
+        if isinstance(part, ImagePart):
+            images.append(Image(part.bytes, height=350))
+    display(*images)
+
+
 def print_parts_ascii(parts: list[MessagePartType]):
+    import ascii_magic
+
     # clear the line the user just entered; we're making it fancy
     print("\033[FUSER: \033[K", end="")
     # print out each part; if it's an ImagePart ascii it
@@ -66,6 +79,7 @@ def print_parts_ascii(parts: list[MessagePartType]):
     print()
 
 
+# ==== entrypoints ====
 async def chat_in_terminal_vision_async(kani: Kani, rounds: int = 0, stopword: str = None):
     """Async version of :func:`.chat_in_terminal_vision`.
     Use in environments when there is already an asyncio loop running (e.g. Google Colab).
@@ -77,6 +91,18 @@ async def chat_in_terminal_vision_async(kani: Kani, rounds: int = 0, stopword: s
         round_num = 0
         while round_num < rounds or not rounds:
             round_num += 1
+
+            # if we're in a notebook, enable a widget to upload files
+            uploader = None
+            if _is_notebook:
+                from IPython.display import Image, display
+                from ipywidgets import widgets
+
+                if uploader is None:
+                    uploader = widgets.FileUpload(accept="image/*", multiple=True, description="Upload images")
+                display(uploader)
+
+            # get user input
             query = input("USER: ").strip()
             if stopword and query == stopword:
                 break
@@ -84,8 +110,19 @@ async def chat_in_terminal_vision_async(kani: Kani, rounds: int = 0, stopword: s
             # find !path/to/file.png parts and replace them with FileImageParts
             query_parts = parts_from_cli_query(query)
 
-            # then print it out with fancy ascii (if installed)
-            if _has_ascii and any(isinstance(p, ImagePart) for p in query_parts):
+            # if we had files from the widget, append them to the parts too
+            if uploader is not None:
+                for uploaded_file in uploader.value:
+                    query_parts.append(ImagePart.from_bytes(uploaded_file.content.tobytes()))
+                uploader.value = ()
+
+            # then print it out with whatever image backend a user has installed
+            has_image = any(isinstance(p, ImagePart) for p in query_parts)
+            # IPython
+            if _is_notebook and has_image:
+                display_images_ipython(query_parts)
+            # ascii art
+            elif _has_ascii and has_image:
                 print_parts_ascii(query_parts)
 
             # and pass on to model
@@ -106,6 +143,9 @@ def chat_in_terminal_vision(kani: Kani, rounds: int = 0, stopword: str = None):
     Useful for playing with kani, quick prompt engineering, or demoing the library.
 
     If the environment variable ``KANI_DEBUG`` is set, debug logging will be enabled.
+
+    If run in a Jupyter notebook or Google Colab, this function will use widgets to accept file uploads and display
+    images.
 
     .. warning::
 
