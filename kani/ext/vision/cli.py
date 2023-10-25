@@ -53,11 +53,9 @@ def display_images_ipython(parts: list[MessagePartType]):
     from IPython.display import Image, display
 
     # show each ImagePart in an IPython display
-    images = []
     for part in parts:
         if isinstance(part, ImagePart):
-            images.append(Image(part.bytes, height=350))
-    display(*images)
+            display(Image(part.bytes, height=350))
 
 
 def print_parts_ascii(parts: list[MessagePartType]):
