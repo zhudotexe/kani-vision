@@ -1,8 +1,8 @@
 import asyncio
 
 from kani import Kani
+from kani.ext.vision import ImagePart
 from kani.ext.vision.engines.llava import LlavaEngine
-from kani.ext.vision.parts import ImagePart
 
 # Load the engine
 engine = LlavaEngine("liuhaotian/llava-v1.5-7b")

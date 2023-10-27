@@ -49,3 +49,88 @@ $ pip install --no-deps "llava @ git+https://github.com/haotian-liu/LLaVA.git@v1
 
 - `pip install "kani-vision[ascii]"`: When using `chat_in_terminal_vision()`, this will display any images you provide
   to the model as ASCII art in your terminal :).
+
+## Quickstart
+
+```python
+from kani import Kani
+from kani.ext.vision import chat_in_terminal_vision
+from kani.ext.vision.engines.openai import OpenAIVisionEngine
+
+# add your OpenAI API key here
+api_key = "sk-..."
+engine = OpenAIVisionEngine(api_key, model="gpt-4-visual")
+ai = Kani(engine)
+
+# use `!path/to/file.png` to provide an image to the engine, e.g. `Please describe this image: !kani-logo.png`
+# or use a URL: `Please describe this image: !https://example.com/image.png`
+chat_in_terminal_vision(ai)
+```
+
+## Usage
+
+This section assumes that you're already familiar with the basic usage of kani. If not, go check
+out [the kani docs](https://kani.readthedocs.io/en/latest/kani.html) first!
+
+kani-vision provides two main features to extend kani with vision using
+the [message parts API](https://kani.readthedocs.io/en/latest/advanced.html#message-parts).
+
+### Engines
+
+The first are the vision engines, which are the underlying vision-language models (VLMs). kani-vision comes with support
+for two VLM engines, GPT-4V (OpenAI's hosted model) and LLaVA v1.5 (an open-source extension of Vicuna):
+
+| Model Name | Extra            | Capabilities | Engine                                              |
+|------------|------------------|--------------|-----------------------------------------------------|
+| GPT-4V     | `openai`         | 🛠 📡        | `kani.ext.vision.engines.openai.OpenAIVisionEngine` |
+| LLaVA v1.5 | `llava` [^llava] | 🔓 🖥 🚀     | `kani.ext.vision.engines.llava.LlavaEngine`         |
+
+**Legend**
+
+- 🛠: Supports function calling.
+- 🔓: Open source model.
+- 🖥: Runs locally on CPU.
+- 🚀: Runs locally on GPU.
+- 📡: Hosted API.
+
+[^llava]: See the installation instructions. You may also need to install PyTorch manually.
+
+To initialize an engine, you use it the same way as in normal kani! All vision engines are interchangeable with normal
+kani engines.
+
+### Message Part
+
+The second feature you need to be familiar with is the `ImagePart`, the core way of sending messages to the engine.
+To do this, when you call the kani round methods (i.e. `Kani.chat_round` or `Kani.full_round` or their str variants),
+pass a *list* rather than a string:
+
+```python
+from kani.ext.vision import ImagePart
+
+# ...
+ai = Kani(engine)
+
+# notice how the arg is a list of parts rather than a single str!
+msg = await ai.chat_round_str([
+    "Please describe this image:",
+    ImagePart.from_path("path/to/image.png")
+])
+```
+
+You can also define images from raw PNG binary or a Pillow Image, using `ImagePart.from_bytes`
+or `ImagePart.from_image`, respectively.
+
+See [the examples](https://github.com/zhudotexe/kani-vision/tree/main/examples/llava-local.py) for more.
+
+### Terminal Utility
+
+Finally, kani-vision comes with an additional utility to chat with a VLM in your terminal, `chat_in_terminal_vision`.
+
+This utility allows you to provide images on your disk or on the internet inline by prepending it with an exclamation
+point:
+
+```pycon
+>>> from kani.ext.vision import chat_in_terminal_vision
+>>> chat_in_terminal_vision(ai)
+USER: Please describe this image: !path/to/image.png and also this one: !https://example.com/image.png
+```
