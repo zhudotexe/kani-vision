@@ -42,7 +42,7 @@ some outdated incompatible dependencies by default:
 
 ```shell
 $ pip install "kani-vision[llava]"
-$ pip install --no-deps "llava @ git+https://github.com/haotian-liu/LLaVA.git@v1.1.1"
+$ pip install --no-deps "llava @ git+https://github.com/haotian-liu/LLaVA.git@v1.1.3"
 ```
 
 ### Other Extras
