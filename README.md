@@ -105,9 +105,11 @@ To do this, when you call the kani round methods (i.e. `Kani.chat_round` or `Kan
 pass a *list* rather than a string:
 
 ```python
+from kani import Kani
 from kani.ext.vision import ImagePart
+from kani.ext.vision.engines.llava import LlavaEngine
 
-# ...
+engine = LlavaEngine("liuhaotian/llava-v1.5-7b")
 ai = Kani(engine)
 
 # notice how the arg is a list of parts rather than a single str!
@@ -115,6 +117,7 @@ msg = await ai.chat_round_str([
     "Please describe this image:",
     ImagePart.from_path("path/to/image.png")
 ])
+print(msg)
 ```
 
 You can also define images from raw PNG binary or a Pillow Image, using `ImagePart.from_bytes`
