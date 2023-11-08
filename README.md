@@ -120,8 +120,8 @@ msg = await ai.chat_round_str([
 print(msg)
 ```
 
-You can also define images from raw PNG binary or a Pillow Image, using `ImagePart.from_bytes`
-or `ImagePart.from_image`, respectively.
+You can also define images from a URL, raw PNG binary or a Pillow Image, using 
+`ImagePart.from_url`, `ImagePart.from_bytes`, or `ImagePart.from_image`, respectively.
 
 See [the examples](https://github.com/zhudotexe/kani-vision/tree/main/examples/llava-local.py) for more.
 
