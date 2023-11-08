@@ -19,7 +19,7 @@ The following classes are the types constructed by the ImagePart methods.
 .. autoclass:: kani.ext.vision.parts.PillowImagePart
     :class-doc-from: class
 
-.. autoclass:: kani.ext.vision.parts.URLImagePart
+.. autoclass:: kani.ext.vision.parts.RemoteURLImagePart
     :class-doc-from: class
 
 Engines
