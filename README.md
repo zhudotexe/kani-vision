@@ -59,7 +59,7 @@ from kani.ext.vision.engines.openai import OpenAIVisionEngine
 
 # add your OpenAI API key here
 api_key = "sk-..."
-engine = OpenAIVisionEngine(api_key, model="gpt-4-visual")
+engine = OpenAIVisionEngine(api_key, model="gpt-4-vision-preview", max_tokens=512)
 ai = Kani(engine)
 
 # use `!path/to/file.png` to provide an image to the engine, e.g. `Please describe this image: !kani-logo.png`
