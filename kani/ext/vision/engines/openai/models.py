@@ -1,21 +1,36 @@
+from typing import Annotated, Literal, Union
+
+from pydantic import Field
+
 from kani.engines.openai.models import OpenAIChatMessage
-from kani.models import BaseModel, ChatMessage
-from ...parts import ImagePart
+from kani.models import BaseModel, ChatMessage, ChatRole
+from ...parts import ImagePart, RemoteURLImagePart
+
+
+class OpenAIText(BaseModel):
+    type: Literal["text"] = "text"
+    text: str
 
 
 class OpenAIImage(BaseModel):
-    image: str
-    resize: int = None
+    type: Literal["image_url"] = "image_url"
+    image_url: str
+    detail: Literal["high"] | Literal["low"] | None = None
 
     @classmethod
     def from_imagepart(cls, part: ImagePart):
-        return cls(image=part.b64)
+        if isinstance(part, RemoteURLImagePart):
+            return cls(image_url=part.url)
+        return cls(image_url=part.b64_uri)
+
+
+OpenAIPart = Annotated[Union[OpenAIText, OpenAIImage], Field(discriminator="type")]
 
 
 class OpenAIVisionChatMessage(OpenAIChatMessage):
     """Override for the base OpenAIChatMessage noting that a content part can be an image."""
 
-    content: str | list[OpenAIImage | str] | None
+    content: list[OpenAIPart] | str | None
 
     @classmethod
     def from_chatmessage(cls, m: ChatMessage):
@@ -29,6 +44,13 @@ class OpenAIVisionChatMessage(OpenAIChatMessage):
                 if isinstance(part, ImagePart):
                     content.append(OpenAIImage.from_imagepart(part))
                 else:
-                    content.append(str(part))
+                    content.append(OpenAIText(text=str(part)))
 
-        return cls(role=m.role, content=content, name=m.name, function_call=m.function_call)
+        # translate tool responses to a function to the right openai format
+        if m.role == ChatRole.FUNCTION:
+            if m.tool_call_id is not None:
+                return cls(role="tool", content=content, name=m.name, tool_call_id=m.tool_call_id)
+            return cls(role=m.role.value, content=content, name=m.name)
+        return cls(
+            role=m.role.value, content=content, name=m.name, tool_call_id=m.tool_call_id, tool_calls=m.tool_calls
+        )

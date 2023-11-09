@@ -59,7 +59,7 @@ from kani.ext.vision.engines.openai import OpenAIVisionEngine
 
 # add your OpenAI API key here
 api_key = "sk-..."
-engine = OpenAIVisionEngine(api_key, model="gpt-4-visual")
+engine = OpenAIVisionEngine(api_key, model="gpt-4-vision-preview", max_tokens=512)
 ai = Kani(engine)
 
 # use `!path/to/file.png` to provide an image to the engine, e.g. `Please describe this image: !kani-logo.png`
@@ -120,8 +120,8 @@ msg = await ai.chat_round_str([
 print(msg)
 ```
 
-You can also define images from raw PNG binary or a Pillow Image, using `ImagePart.from_bytes`
-or `ImagePart.from_image`, respectively.
+You can also define images from a URL, raw PNG binary or a Pillow Image, using 
+`ImagePart.from_url`, `ImagePart.from_bytes`, or `ImagePart.from_image`, respectively.
 
 See [the examples](https://github.com/zhudotexe/kani-vision/tree/main/examples/llava-local.py) for more.
 

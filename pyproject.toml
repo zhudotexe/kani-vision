@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "kani-vision"
-version = "0.0.1"
+version = "0.6.1"
 authors = [
     { name = "Andrew Zhu", email = "andrew@zhu.codes" },
 ]
@@ -22,17 +22,17 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "kani>=0.5.1,<2.0.0",
+    "kani>=0.6.1,<2.0.0",
     "Pillow>=10.0.0,<11.0.0",
 ]
 
 [project.optional-dependencies]
 openai = [
-    "kani[openai]>=0.5.1,<2.0.0",
+    "kani[openai]>=0.6.1,<2.0.0",
 ]
 
 llava = [
-    "kani[huggingface,llama]>=0.5.1,<2.0.0",
+    "kani[huggingface,llama]>=0.6.1,<2.0.0",
     "accelerate~=0.23.0",
     "einops~=0.7.0",
     "protobuf~=4.24.4",

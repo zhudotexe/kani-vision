@@ -6,10 +6,7 @@ import pathlib
 import re
 import shutil
 import sys
-import tempfile
 import warnings
-
-import aiohttp
 
 from kani import Kani
 from kani.models import MessagePartType
@@ -50,30 +47,24 @@ async def parts_from_cli_query(query: str) -> list[MessagePartType]:
                 fp = pathlib.Path(path)
             else:
                 fp = pathlib.Path(image_match["path_quot"].strip('"'))
+
+            # if not, push the string to parts
+            log.debug(f"Found image path: {fp}")
+            if not (fp.exists() and fp.is_file()):
+                warnings.warn(f"The given image path ({fp}) either does not exist or is not a valid file.")
+                query_parts.append(image_match[0])
+            # otherwise, push a FileImagePart
+            else:
+                query_parts.append(ImagePart.from_path(fp))
         # if a url:
         else:
             # download the image to a named temp file and return that path
             url = image_match["url"]
-            log.debug(f"Downloading image url: {url}")
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url) as resp:
-                    with tempfile.NamedTemporaryFile(delete=False) as f:
-                        async for chunk in resp.content.iter_chunked(4096):
-                            f.write(chunk)
-                        fp = pathlib.Path(f.name)
-
-        # if not, push the string to parts
-        log.debug(f"Found image path: {fp}")
-        if not (fp.exists() and fp.is_file()):
-            warnings.warn(f"The given image path ({fp}) either does not exist or is not a valid file.")
-            query_parts.append(image_match[0])
-        # otherwise, push a FileImagePart
-        else:
-            query_parts.append(ImagePart.from_path(fp))
+            query_parts.append(await ImagePart.from_url(url, remote=False))
 
     # and make sure the rest of the query is in the parts
     query_parts.append(query[last_idx:])
-    return query_parts
+    return [part for part in query_parts if part]
 
 
 # ==== image display helpers ====

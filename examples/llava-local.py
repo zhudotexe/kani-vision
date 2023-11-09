@@ -31,9 +31,9 @@ ai = Kani(engine)
 
 
 async def main():
-    msg = await ai.chat_round_str(
-        ["Please describe this image:", ImagePart.from_path("../docs/_static/kani-vision-logo.png")]
-    )
+    msg = await ai.chat_round_str([
+        "Please describe this image:", ImagePart.from_path("../docs/_static/kani-vision-logo.png")
+    ])
     print(msg)
 
 
