@@ -86,6 +86,7 @@ class ImagePart(MessagePart, abc.ABC):
     # metadata
     @property
     def size(self) -> tuple[int, int]:
+        """Get the size of the image, in pixels."""
         return self.image.size
 
     @property
