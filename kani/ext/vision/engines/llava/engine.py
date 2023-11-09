@@ -16,12 +16,12 @@ try:
     )
     from llava.mm_utils import process_images, tokenizer_image_token
     from torch import tensor
-except ImportError:
+except ImportError as e:
     raise MissingModelDependencies(
         "The LlavaEngine requires extra dependencies. Please see the kani-vision installation documentation for"
         " instructions on how to install the LLaVA dependencies"
         " (https://github.com/zhudotexe/kani-vision#installation)."
-    ) from None
+    ) from e
 
 
 class LlavaEngine(VicunaEngine):
