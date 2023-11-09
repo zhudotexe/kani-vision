@@ -9,6 +9,7 @@ kani[huggingface,llama]>=0.6.1,<2.0.0
 accelerate~=0.23.0
 einops~=0.7.0
 protobuf~=4.24.4
+torch
 
 # fun
 ascii_magic~=2.3.0
