@@ -6,7 +6,7 @@ from kani.ext.vision.engines.openai import OpenAIVisionEngine
 
 api_key = os.getenv("OPENAI_API_KEY")
 
-engine = OpenAIVisionEngine(api_key, model="gpt-4-visual", max_tokens=512)
+engine = OpenAIVisionEngine(api_key, model="gpt-4-vision-preview", max_tokens=512)
 ai = Kani(engine)
 
 if __name__ == "__main__":
