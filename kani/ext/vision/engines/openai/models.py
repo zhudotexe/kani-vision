@@ -7,21 +7,26 @@ from kani.models import BaseModel, ChatMessage, ChatRole
 from ...parts import ImagePart, RemoteURLImagePart
 
 
+# note: `type` does not have default since we use `.model_dump(..., exclude_defaults=True)`
 class OpenAIText(BaseModel):
-    type: Literal["text"] = "text"
+    type: Literal["text"]
     text: str
+
+    @classmethod
+    def from_text(cls, data: str):
+        return cls(type="text", text=data)
 
 
 class OpenAIImage(BaseModel):
-    type: Literal["image_url"] = "image_url"
+    type: Literal["image_url"]
     image_url: str
     detail: Literal["high"] | Literal["low"] | None = None
 
     @classmethod
     def from_imagepart(cls, part: ImagePart):
         if isinstance(part, RemoteURLImagePart):
-            return cls(image_url=part.url)
-        return cls(image_url=part.b64_uri)
+            return cls(type="image_url", image_url=part.url)
+        return cls(type="image_url", image_url=part.b64_uri)
 
 
 OpenAIPart = Annotated[Union[OpenAIText, OpenAIImage], Field(discriminator="type")]
@@ -44,7 +49,7 @@ class OpenAIVisionChatMessage(OpenAIChatMessage):
                 if isinstance(part, ImagePart):
                     content.append(OpenAIImage.from_imagepart(part))
                 else:
-                    content.append(OpenAIText(text=str(part)))
+                    content.append(OpenAIText.from_text(str(part)))
 
         # translate tool responses to a function to the right openai format
         if m.role == ChatRole.FUNCTION:
