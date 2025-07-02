@@ -1,3 +1,17 @@
+# kani-vision
+
+## This package has been deprecated. Multimodal support is now included in core kani using kani-multimodal-core.
+
+Install multimodal support using:
+
+```shell
+$ pip install "kani[multimodal]"
+```
+
+See https://github.com/zhudotexe/kani-multimodal-core for more information.
+
+---
+
 <p align="center">
   <img width="256" height="256" alt="kani" src="https://kani-vision.readthedocs.io/en/latest/_static/kani-vision-logo.png">
 </p>
@@ -19,8 +33,6 @@
     <img alt="Discord" src="https://img.shields.io/discord/1150902904773935214?color=5865F2&label=discord&logo=discord&logoColor=white">
   </a>
 </p>
-
-# kani-vision
 
 ## Installation
 
